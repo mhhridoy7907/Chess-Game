@@ -1,4 +1,4 @@
-# ♟️ Chess Game – Web AI Chess  
+# ♟️ Web Chess Game  
 
 <p align="center">
   <img src="https://img.shields.io/badge/JavaScript-Game-yellow?style=for-the-badge&logo=javascript"/>
@@ -15,16 +15,16 @@
 
 ## 🚀 Features  
 
-✨ Smooth animated chess moves  
-🤖 Built-in AI opponent  
-♟️ Real chess rules (check & capture)  
-🎨 Custom styled chess pieces  
-💡 King in-check highlight  
-📱 Mobile + Desktop responsive  
+- Smooth animated chess moves  
+- Built-in AI opponent  
+- Real chess rules (check & capture)  
+- Custom styled chess pieces  
+- King in-check highlight  
+- Mobile + Desktop responsive  
 
 ---
 
-## 🎮 Demo  
+##  Demo  
 
 <p align="center">
   <img src="chess.png" width="500"/>
