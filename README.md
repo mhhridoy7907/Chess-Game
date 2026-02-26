@@ -70,4 +70,4 @@ Chess-Game
 
 ### update demo UI
 ---
-![privew](chee.png)
+![privew](cheee.png)
