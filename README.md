@@ -54,3 +54,20 @@ Chess-Game
 │── style.css
 │── funtion.js
 │── README.md
+```
+
+---
+
+### Update new
+
+- Removed AI bot: Now supports two human players.
+
+- Enhanced functions: Game logic has been refined and made more distinct.
+
+- Modern UI: User interface updated with sleek, futuristic styling.
+
+- Improved experience: Smooth interactions, glowing neon board, and animated effects.
+
+### update demo UI
+---
+![privew](chee.png)
