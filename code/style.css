@@ -1,166 +1,159 @@
 
-/* ==============================
-   GLOBAL
-============================== */
-html, body {
-  margin: 0;
-  height: 100%;
-  background: #000000;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family: "Segoe UI", sans-serif;
 }
 
-/* ==============================
-   GAME CONTAINER
-============================== */
-#gameContainer {
-  text-align: center;
-  perspective: 1000px; /* subtle 3D hover */
+body{
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background: radial-gradient(circle at top, #0f172a, #020617);
 }
 
-/* ==============================
-   CONTROL BAR
-============================== */
-#controls {
-  margin-bottom: 15px;
+/* glass container */
+.chat-container{
+    width:420px;
+    height:650px;
+    display:flex;
+    flex-direction:column;
+    border-radius:25px;
+    overflow:hidden;
+    background: rgba(30,41,59,0.7);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    animation: pop .4s ease;
 }
 
-button {
-  padding: 10px 18px;
-  margin: 0 6px;
-  border: none;
-  border-radius: 8px;
-  background: #00f6f0;
-  color: #000;
-  font-weight: bold;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 0 10px #00f6f0, 0 0 20px #00f6f0 inset;
-}
-button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 20px #00f6f0, 0 0 40px #00f6f0 77 inset;
+@keyframes pop{
+    from{transform:scale(0.9); opacity:0;}
+    to{transform:scale(1); opacity:1;}
 }
 
-/* ==============================
-   CHESS BOARD
-============================== */
-#chessboard {
-  display: grid;
-  grid-template-columns: repeat(8, 80px);
-  grid-template-rows: repeat(8, 80px);
-  border: 3px solid #00f6f0;
-  box-shadow: 0 0 40px #00f6f0 77, 0 10px 30px rgba(0, 0, 0, 0.7);
-  border-radius: 12px;
-  transition: all 0.3s ease;
+/* header */
+.header{
+    padding:16px;
+    text-align:center;
+    font-size:20px;
+    font-weight:bold;
+    color:white;
+    background: linear-gradient(90deg,#2563eb,#7c3aed);
+    letter-spacing:1px;
 }
 
-/* ==============================
-   CELLS
-============================== */
-.cell {
-  width: 80px;
-  height: 80px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 50px;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.3s ease;
-  border-radius: 6px;
+/* chat box */
+.chat-box{
+    flex:1;
+    padding:15px;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
 }
 
-.white {
-  background: linear-gradient(145deg, #ffffff, #fffdfd);
+/* scrollbar */
+.chat-box::-webkit-scrollbar{
+    width:6px;
 }
-.black {
-  background: linear-gradient(145deg, #4c00ff, #4c00ff);
-}
-
-/* ==============================
-   PIECES COLOR
-============================== */
-.cell::before {
-  content: attr(data-piece);
-  transition: all 0.3s ease;
+.chat-box::-webkit-scrollbar-thumb{
+    background:#475569;
+    border-radius:10px;
 }
 
-.cell[data-piece^="w"]::before {
-  color: #00f6f0; /* neon cyan */
-  text-shadow: 0 0 8px #00f6f0, 0 0 15px #00f6f0;
+/* messages */
+.message{
+    max-width:75%;
+    padding:10px 14px;
+    border-radius:18px;
+    font-size:14px;
+    line-height:1.4;
+    animation: fadeIn .25s ease;
+    word-wrap:break-word;
 }
 
-.cell[data-piece^="b"]::before {
-  color: #ff00ff; /* neon magenta */
-  text-shadow: 0 0 8px #ff00ff55, 0 0 15px #ff00ff77;
+@keyframes fadeIn{
+    from{opacity:0; transform:translateY(10px);}
+    to{opacity:1; transform:translateY(0);}
 }
 
-/* ==============================
-   CELL EFFECTS
-============================== */
-.selected {
-  outline: 3px solid #00f6f0;
-  outline-offset: -4px;
-  box-shadow: 0 0 15px #00f6f0, inset 0 0 10px #00f6f0;
+.user{
+    align-self:flex-end;
+    background: linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    border-bottom-right-radius:5px;
 }
 
-.legal {
-  box-shadow: inset 0 0 0 5px rgba(0, 246, 255, 0.5);
+.bot{
+    align-self:flex-start;
+    background:#334155;
+    color:white;
+    border-bottom-left-radius:5px;
 }
 
-.hint {
-  box-shadow: inset 0 0 10px 3px rgba(0, 246, 255, 0.7);
+/* typing */
+.typing{
+    display:flex;
+    gap:4px;
+    align-items:center;
+    padding:10px 14px;
+    background:#334155;
+    border-radius:18px;
+    width:fit-content;
 }
 
-.check {
-  background: #ff0044 !important;
-  animation: pulseCheck 1s infinite alternate;
+.dot{
+    width:6px;
+    height:6px;
+    background:white;
+    border-radius:50%;
+    animation: blink 1s infinite;
 }
 
-/* ==============================
-   OVERLAY
-============================== */
-#gameOverOverlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.85);
-  color: #00f6f0;
-  font-size: 60px;
-  font-weight: bold;
-  opacity: 0;
-  pointer-events: none;
-  text-shadow: 0 0 15px #00f6f0, 0 0 30px #00f6f0;
+.dot:nth-child(2){animation-delay:0.2s;}
+.dot:nth-child(3){animation-delay:0.4s;}
+
+@keyframes blink{
+    0%,100%{opacity:0.2;}
+    50%{opacity:1;}
 }
 
-/* ==============================
-   HOVER ANIMATION
-============================== */
-.cell:hover {
-  transform: translateY(-5px) scale(1.05);
-  box-shadow: 0 0 20px #00f6f0, inset 0 0 10px #00f6f0;
+/* input area */
+.input-area{
+    display:flex;
+    padding:12px;
+    background: rgba(15,23,42,0.9);
+    gap:10px;
 }
 
-/* ==============================
-   CHECK ANIMATION
-============================== */
-@keyframes pulseCheck {
-  0% { box-shadow: 0 0 10px #ff0044, inset 0 0 15px #ff0044aa; }
-  100% { box-shadow: 0 0 25px #ff0044, inset 0 0 25px #ff0044ff; }
+input{
+    flex:1;
+    padding:12px 14px;
+    border:none;
+    outline:none;
+    border-radius:12px;
+    background:#1e293b;
+    color:white;
+    font-size:14px;
 }
 
-/* ==============================
-   RESPONSIVE
-============================== */
-@media(max-width:600px){
-  #gameContainer {
-    transform: scale(0.7);
-  }
+input::placeholder{
+    color:#94a3b8;
+}
+
+button{
+    padding:12px 16px;
+    border:none;
+    border-radius:12px;
+    background: linear-gradient(135deg,#2563eb,#7c3aed);
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+button:hover{
+    transform:scale(1.05);
 }
