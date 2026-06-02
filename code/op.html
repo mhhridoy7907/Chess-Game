@@ -3,21 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chess Game</title>
+<title>MH2 AI </title>
 <link rel="stylesheet" href="style.css">
+
 </head>
+
 <body>
 
-<div id="gameContainer">
-<div id="controls">
-  <button onclick="undoMove()">Undo</button>
-  <button onclick="restartGame()">Restart</button>
-</div>
-<div id="chessboard"></div>
-</div>
-<div id="gameOverOverlay"></div>
+<div class="chat-container">
 
-<script src="funtion.js"></script>
+    <div class="header"> MH2 Ai</div>
+
+    <div class="chat-box" id="chatBox"></div>
+
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="Type your message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+</div>
+
+<script src="f.js"></script>
 
 </body>
 </html>
