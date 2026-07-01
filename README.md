@@ -1,73 +1,115 @@
-# ♟️ Web Chess Game  
+# ♟️ MH2 Chess
 
-<p align="center">
-  <img src="https://img.shields.io/badge/JavaScript-Game-yellow?style=for-the-badge&logo=javascript"/>
-  <img src="https://img.shields.io/badge/Chess-AI-blue?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/Status-Playable-brightgreen?style=for-the-badge"/>
-</p>
-
-<p align="center">
-  <b>Interactive Web Chess with AI Opponent</b><br>
-  Play chess in your browser with smooth moves, smart AI, and stylish board.
-</p>
+A modern web-based chess application built with HTML, CSS, and JavaScript. It supports offline play, AI matches, and real-time online multiplayer using Firebase Realtime Database. The project focuses on smooth gameplay, responsive design, and a clean user experience while keeping everything lightweight and browser-based.
 
 ---
 
-## 🚀 Features  
+## Features
 
-- Smooth animated chess moves  
-- Built-in AI opponent  
-- Real chess rules (check & capture)  
-- Custom styled chess pieces  
-- King in-check highlight  
-- Mobile + Desktop responsive  
-
----
-
-##  Demo  
-
-<p align="center">
-  <img src="chess.png" width="500"/>
-</p>
-
----
-
-## 🛠️ Tech Stack  
-
-<p align="center">
-  <img src="https://skillicons.dev/icons?i=html,css,js"/>
-</p>
-
-- HTML5  
-- CSS3  
-- JavaScript  
-- DOM Logic  
-- Chess AI  
+- Play against another player on the same device
+- Play against AI
+- Real-time online multiplayer
+- Firebase Authentication
+- Guest login support
+- User profiles and ratings
+- Friend system
+- Room code matchmaking
+- Chess clock with configurable time controls
+- Move history
+- Undo move (offline)
+- Pawn promotion
+- Check and checkmate detection
+- Draw and resign options
+- Achievement system
+- Player statistics
+- Responsive interface for desktop and mobile
+- Modern glassmorphism inspired UI
+- Animated loading screen and visual effects
 
 ---
 
-## 📂 Project Structure  
+## Built With
 
-```text
-Chess-Game
-│── op.html
-│── style.css
-│── funtion.js
-│── README.md
+- HTML5
+- CSS3
+- Vanilla JavaScript (ES6)
+- Firebase Authentication
+- Firebase Realtime Database
+- Google Apps Script (for logging)
+
+---
+
+
+## Firebase Setup
+
+Create a Firebase project and enable:
+
+- Authentication
+- Realtime Database
+
+Replace the Firebase configuration with your own credentials.
+
+```
+const firebaseConfig = {
+    ...
+};
 ```
 
 ---
 
-### Update new
+## Gameplay
 
-- Removed AI bot: Now supports two human players.
+### Offline
 
-- Enhanced functions: Game logic has been refined and made more distinct.
+- Two players can play on the same device.
 
-- Modern UI: User interface updated with sleek, futuristic styling.
+### AI
 
-- Improved experience: Smooth interactions, glowing neon board, and animated effects.
+- Play against the built-in chess AI.
 
-### update demo UI
+### Online
+
+- Create a room
+- Share the room code
+- Join using the room code
+- Play in real time
+
 ---
-![privew](cheee.png)
+
+## Main Highlights
+
+- Responsive chess board
+- Real-time synchronization
+- Animated UI
+- Player profiles
+- Friends system
+- Statistics tracking
+- Rating system
+- Smooth game experience
+
+---
+
+## Future Improvements
+
+- Better chess AI
+- Multiple AI difficulty levels
+- Match history
+- Spectator mode
+- Puzzle mode
+- Leaderboards
+- Tournament support
+- Sound customization
+- Additional board themes
+
+---
+
+## Screenshots
+
+Screenshots will be added soon.
+
+---
+
+## License
+
+This project is available for learning and personal use.
+
