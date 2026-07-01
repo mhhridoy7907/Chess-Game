@@ -1,0 +1,45 @@
+{
+  "rules": {
+    "usernames": {
+      ".read": "auth != null",
+      "$username": {
+        ".write": "auth != null && (!data.exists() || data.val() === auth.uid)"
+      }
+    },
+
+    "users": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid",
+
+        "wins": { ".write": "auth != null" },
+        "losses": { ".write": "auth != null" },
+        "draws": { ".write": "auth != null" },
+        "rating": { ".write": "auth != null" },
+
+        "friends": {
+          "$friendId": {
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        },
+
+        "achievements": {
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+
+    "rooms": {
+      "$roomId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.child('host').val() === auth.uid || data.child('guest').val() === auth.uid || (!data.child('guest').exists() && newData.child('guest').val() === auth.uid))",
+
+        "chat": {
+          "$msgId": {
+            ".write": "auth != null && (root.child('rooms').child($roomId).child('host').val() === auth.uid || root.child('rooms').child($roomId).child('guest').val() === auth.uid)"
+          }
+        }
+      }
+    }
+  }
+}
