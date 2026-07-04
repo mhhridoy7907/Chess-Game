@@ -1,5 +1,4 @@
-
-  :root{
+:root{
     --bg-0:#0a0a0a; --bg-1:#12151c;
     --ink-0:#eef1f6; --ink-1:#a7adba; --ink-2:#6c7686;
     --emerald:#37c98f; --emerald-dim:#1f8f63;
@@ -147,7 +146,7 @@
 
   .footer-note{ color:var(--ink-2); font-size:11px; text-align:center; margin-top:6px; }
 
-  /* START SCREEN */
+
   #startScreen{
     display:flex;
     flex-direction:column;
@@ -194,7 +193,7 @@
     box-shadow:0 10px 30px rgba(55,201,143,0.2);
   }
 
-  /* ONLINE LOBBY */
+
   #onlineLobby{
     display:none;
   }
