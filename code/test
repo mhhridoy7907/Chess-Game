@@ -93,3 +93,1641 @@
     }
   }
 }
+====
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MH2 Chess — Play with a Friend</title>
+<style>
+  :root{
+    --bg-0:#0a0a0a; --bg-1:#12151c;
+    --ink-0:#eef1f6; --ink-1:#a7adba; --ink-2:#6c7686;
+    --emerald:#37c98f; --emerald-dim:#1f8f63;
+    --gold:#d7ab5c; --crimson:#e35d6a;
+    --sq-light:#eadfce; --sq-dark:#7c5a41;
+    --glass:rgba(255,255,255,0.045); --glass-brd:rgba(255,255,255,0.09);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{
+    height:100%; background:
+      radial-gradient(1200px 800px at 15% -10%, rgba(55,201,143,0.08), transparent 60%),
+      radial-gradient(1000px 700px at 110% 10%, rgba(215,171,92,0.06), transparent 55%),
+      var(--bg-0);
+    color:var(--ink-0); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    overflow-x:hidden;
+  }
+  .wrap{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:20px 14px 50px; gap:16px;
+  }
+  h1{
+    font-size:26px; text-align:center; margin-top:6px;
+    background:linear-gradient(135deg,var(--emerald),var(--gold));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    font-weight:800; letter-spacing:0.3px;
+  }
+  .subtitle{ color:var(--ink-2); font-size:13px; text-align:center; margin-top:-10px; }
+
+  .glass{
+    background:var(--glass); border:1px solid var(--glass-brd);
+    backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    border-radius:16px;
+  }
+
+  #status{
+    font-size:17px; font-weight:700; padding:10px 22px; border-radius:12px;
+    text-align:center; min-width:260px;
+  }
+  #status.white-turn{ color:#fff; border:1px solid rgba(255,255,255,0.15); }
+  #status.black-turn{ color:#8ecfff; border:1px solid rgba(142,207,255,0.25); }
+  #status.check{ color:var(--crimson); border-color:rgba(227,93,106,0.4); animation:pulseText 1s infinite; }
+  #status.over{ color:var(--gold); border-color:rgba(215,171,92,0.4); }
+  @keyframes pulseText{ 0%,100%{opacity:1;} 50%{opacity:0.55;} }
+
+  .board-shell{
+    padding:14px; border-radius:18px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.55);
+  }
+  #chessboard{
+    display:grid;
+    grid-template-columns:repeat(8, min(11.5vw, 62px));
+    grid-template-rows:repeat(8, min(11.5vw, 62px));
+    border-radius:6px; overflow:hidden;
+    box-shadow:0 0 0 3px rgba(255,255,255,0.08);
+  }
+  .cell{
+    display:flex; justify-content:center; align-items:center;
+    font-size:min(8vw,42px); cursor:pointer; position:relative; user-select:none;
+    transition:background .12s;
+  }
+  .cell.light{ background:var(--sq-light); }
+  .cell.dark{ background:var(--sq-dark); }
+  .cell.selected{ box-shadow:inset 0 0 0 4px var(--gold); }
+  .cell.last-from, .cell.last-to{ box-shadow:inset 0 0 0 9999px rgba(215,171,92,0.35); }
+  .cell.selected.last-to{ box-shadow:inset 0 0 0 4px var(--gold), inset 0 0 0 9999px rgba(215,171,92,0.2); }
+  .cell.check{ box-shadow:inset 0 0 0 9999px rgba(227,93,106,0.55); }
+  .cell .dot{
+    position:absolute; width:26%; height:26%; border-radius:50%;
+    background:rgba(30,30,30,0.35); pointer-events:none;
+  }
+  .cell .ring{
+    position:absolute; inset:8%; border-radius:50%;
+    border:5px solid rgba(200,40,40,0.55); pointer-events:none;
+  }
+  .piece-white{ color:#fdfdfd; text-shadow:0 1px 2px rgba(0,0,0,0.6), 0 0 1px #000; }
+  .piece-black{ color:#151515; text-shadow:0 1px 1px rgba(255,255,255,0.25); }
+  .piece{ pointer-events:none; transition:transform .08s; }
+
+  .coord{
+    position:absolute; font-size:9px; font-weight:700; opacity:0.55; pointer-events:none;
+  }
+  .coord.file{ bottom:2px; right:4px; }
+  .coord.rank{ top:2px; left:3px; }
+  .cell.light .coord{ color:var(--sq-dark); }
+  .cell.dark .coord{ color:var(--sq-light); }
+
+  .controls{
+    display:flex; gap:10px; flex-wrap:wrap; justify-content:center; max-width:560px;
+  }
+  button{
+    padding:11px 18px; border-radius:11px; border:1px solid var(--glass-brd);
+    background:var(--glass); color:var(--ink-0); font-weight:700; font-size:13.5px;
+    cursor:pointer; transition:all .15s;
+  }
+  button:hover{ background:rgba(255,255,255,0.09); }
+  button:active{ transform:scale(0.96); }
+  button.primary{
+    background:linear-gradient(145deg,var(--emerald),var(--emerald-dim));
+    color:#082017; border:none;
+  }
+  button:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  .info-row{
+    display:flex; gap:14px; flex-wrap:wrap; justify-content:center; width:100%; max-width:560px;
+  }
+  .info-box{
+    flex:1; min-width:140px; padding:12px 16px; text-align:center;
+  }
+  .info-label{ color:var(--emerald); font-size:11px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:4px; }
+  .info-value{ font-size:20px; font-weight:800; }
+  .captured-row{ display:flex; gap:2px; flex-wrap:wrap; justify-content:center; font-size:16px; min-height:22px; margin-top:4px;}
+
+  .history-box{
+    width:100%; max-width:560px; padding:14px 16px; max-height:140px; overflow-y:auto;
+  }
+  .history-box .info-label{ margin-bottom:8px; }
+  .move-history{ font-family:'Courier New',monospace; font-size:12.5px; color:var(--ink-1); line-height:1.7; }
+  .move-history .num{ color:var(--ink-2); margin-right:4px; }
+
+  #overlay{
+    position:fixed; inset:0; z-index:100; background:rgba(4,4,6,0.82);
+    display:none; justify-content:center; align-items:center; padding:20px;
+    backdrop-filter:blur(6px);
+  }
+  #overlay.active{ display:flex; }
+  .modal{
+    max-width:380px; width:100%; padding:34px 28px; text-align:center;
+  }
+  .modal .icon{ font-size:46px; margin-bottom:10px; }
+  .modal h2{
+    font-size:26px; margin-bottom:6px;
+    background:linear-gradient(135deg,var(--emerald),var(--gold));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .modal p{ color:var(--ink-1); font-size:14px; margin-bottom:22px; }
+  .modal .actions{ display:flex; gap:10px; }
+  .modal .actions button{ flex:1; }
+
+  .promo-choices{ display:flex; gap:10px; justify-content:center; margin-top:6px; }
+  .promo-choice{
+    width:58px; height:58px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,0.06); border:1px solid var(--glass-brd); font-size:34px; cursor:pointer;
+  }
+  .promo-choice:hover{ background:rgba(55,201,143,0.18); border-color:var(--emerald); }
+
+  .footer-note{ color:var(--ink-2); font-size:11px; text-align:center; margin-top:6px; }
+
+  /* START SCREEN */
+  #startScreen{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    gap:30px;
+  }
+  #startScreen.hidden{
+    display:none;
+  }
+  .menu-title{
+    font-size:48px; font-weight:900;
+    background:linear-gradient(135deg,var(--emerald),var(--gold));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .menu-buttons{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    align-items:center;
+  }
+  .menu-btn{
+    padding:16px 40px;
+    font-size:18px;
+    font-weight:700;
+    border-radius:14px;
+    border:none;
+    cursor:pointer;
+    transition:all 0.2s;
+    min-width:240px;
+  }
+  .menu-btn.online{
+    background:linear-gradient(145deg,var(--emerald),var(--emerald-dim));
+    color:#082017;
+  }
+  .menu-btn.offline{
+    background:var(--glass);
+    border:1px solid var(--glass-brd);
+    color:var(--ink-0);
+  }
+  .menu-btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 10px 30px rgba(55,201,143,0.2);
+  }
+
+  /* ONLINE LOBBY */
+  #onlineLobby{
+    display:none;
+  }
+  #onlineLobby.active{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100vh;
+    padding:20px;
+    gap:20px;
+  }
+  .lobby-header{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .lobby-title{
+    font-size:28px;
+    font-weight:800;
+    background:linear-gradient(135deg,var(--emerald),var(--gold));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .player-tag{
+    background:var(--glass);
+    border:1px solid var(--glass-brd);
+    padding:8px 14px;
+    border-radius:10px;
+    font-size:12px;
+    color:var(--emerald);
+    font-weight:700;
+  }
+  .players-list{
+    width:100%;
+    max-width:500px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .player-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:var(--glass);
+    border:1px solid var(--glass-brd);
+    padding:14px 18px;
+    border-radius:12px;
+  }
+  .player-name{
+    font-weight:700;
+    font-size:14px;
+  }
+  .invite-btn{
+    padding:8px 16px;
+    font-size:12px;
+    border-radius:8px;
+    background:linear-gradient(145deg,var(--emerald),var(--emerald-dim));
+    color:#082017;
+    border:none;
+    cursor:pointer;
+    font-weight:700;
+    transition:all 0.2s;
+  }
+  .invite-btn:hover{
+    transform:scale(1.05);
+  }
+  .invite-btn:disabled{
+    opacity:0.5;
+    cursor:not-allowed;
+  }
+  .empty-state{
+    text-align:center;
+    color:var(--ink-2);
+    padding:40px 20px;
+  }
+  .empty-state-text{
+    font-size:14px;
+    color:var(--ink-1);
+  }
+
+  /* INVITE MODAL */
+  #inviteModal{
+    position:fixed;
+    inset:0;
+    z-index:200;
+    background:rgba(4,4,6,0.82);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+    backdrop-filter:blur(6px);
+  }
+  #inviteModal.active{
+    display:flex;
+  }
+  .invite-card{
+    max-width:400px;
+    width:100%;
+    padding:34px 28px;
+    text-align:center;
+  }
+  .invite-card h3{
+    font-size:18px;
+    margin-bottom:20px;
+    color:var(--ink-0);
+  }
+  .invite-card .actions{
+    display:flex;
+    gap:10px;
+  }
+  .invite-card .actions button{
+    flex:1;
+  }
+
+  /* PLAYER NAME INPUT */
+  #playerNameModal{
+    position:fixed;
+    inset:0;
+    z-index:150;
+    background:rgba(4,4,6,0.82);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+    backdrop-filter:blur(6px);
+  }
+  #playerNameModal.active{
+    display:flex;
+  }
+  .name-input-card{
+    max-width:380px;
+    width:100%;
+    padding:34px 28px;
+    text-align:center;
+  }
+  .name-input-card h3{
+    font-size:20px;
+    margin-bottom:20px;
+    color:var(--ink-0);
+  }
+  .name-input-card input{
+    width:100%;
+    padding:12px 16px;
+    border-radius:10px;
+    border:1px solid var(--glass-brd);
+    background:rgba(255,255,255,0.06);
+    color:var(--ink-0);
+    font-size:14px;
+    margin-bottom:16px;
+    font-weight:600;
+  }
+  .name-input-card input::placeholder{
+    color:var(--ink-2);
+  }
+  .name-input-card .actions{
+    display:flex;
+    gap:10px;
+  }
+  .name-input-card .actions button{
+    flex:1;
+  }
+
+  /* GAME CONTAINER */
+  #gameContainer{
+    display:none;
+  }
+  #gameContainer.active{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100vh;
+    width:100%;
+  }
+  .game-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    width:100%;
+    max-width:600px;
+    padding:20px;
+    gap:20px;
+  }
+  .opponent-info{
+    text-align:center;
+    font-size:12px;
+    color:var(--ink-1);
+  }
+  .exit-btn{
+    padding:8px 14px;
+    font-size:12px;
+    background:rgba(227,93,106,0.1);
+    border:1px solid rgba(227,93,106,0.3);
+    color:var(--crimson);
+    border-radius:8px;
+    cursor:pointer;
+    transition:all 0.2s;
+  }
+  .exit-btn:hover{
+    background:rgba(227,93,106,0.2);
+  }
+
+  .sync-status{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    padding:8px 12px;
+    background:var(--glass);
+    border:1px solid var(--glass-brd);
+    border-radius:8px;
+    font-size:11px;
+    color:var(--emerald);
+  }
+
+  .debug-log{
+    position:fixed;
+    bottom:20px;
+    left:20px;
+    max-width:300px;
+    max-height:150px;
+    padding:10px;
+    background:rgba(0,0,0,0.8);
+    border:1px solid var(--emerald);
+    border-radius:8px;
+    font-size:10px;
+    color:var(--emerald);
+    font-family:monospace;
+    overflow-y:auto;
+    display:none;
+  }
+
+  @media (max-width:420px){
+    .info-box{ min-width:100px; padding:10px 8px; }
+    .info-value{ font-size:17px; }
+    .menu-btn{
+      padding:14px 30px;
+      min-width:200px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- START SCREEN -->
+<div id="startScreen">
+  <h1 class="menu-title">♞ MH2 Chess</h1>
+  <div class="menu-buttons">
+    <button class="menu-btn online" onclick="app.showPlayerNameInput()">🌐 Online Play</button>
+    <button class="menu-btn offline" onclick="app.startOfflineGame()">👥 Offline 2 Player</button>
+  </div>
+</div>
+
+<!-- PLAYER NAME INPUT -->
+<div id="playerNameModal">
+  <div class="glass name-input-card">
+    <h3>Enter Your Name</h3>
+    <input type="text" id="playerNameInput" placeholder="Your name" maxlength="20">
+    <div class="actions">
+      <button onclick="app.cancelPlayerName()">Cancel</button>
+      <button class="primary" onclick="app.submitPlayerName()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVITE MODAL -->
+<div id="inviteModal">
+  <div class="glass invite-card">
+    <h3 id="inviteText">—</h3>
+    <div class="actions">
+      <button onclick="app.declineInvite()">Decline</button>
+      <button class="primary" onclick="app.acceptInvite()">Accept</button>
+    </div>
+  </div>
+</div>
+
+<!-- ONLINE LOBBY -->
+<div id="onlineLobby">
+  <div class="wrap">
+    <h1>♞ MH2 Chess</h1>
+    <div class="lobby-header">
+      <span class="lobby-title">Online Lobby</span>
+      <span class="player-tag" id="currentPlayerTag">You</span>
+      <button class="exit-btn" onclick="app.exitLobby()">← Back</button>
+    </div>
+    <div class="players-list" id="playersList">
+      <div class="empty-state">
+        <div style="font-size:24px;margin-bottom:10px;">🔄</div>
+        <div class="empty-state-text">Looking for players...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME CONTAINER -->
+<div id="gameContainer">
+  <div class="game-header">
+    <div class="opponent-info" id="opponentInfo">Opponent: —</div>
+    <h1>♞ MH2 Chess</h1>
+    <button class="exit-btn" onclick="app.exitGame()">Exit</button>
+  </div>
+
+  <div class="wrap" style="padding-top:0;">
+    <div id="status" class="glass white-turn">White's Turn</div>
+
+    <div class="board-shell glass">
+      <div id="chessboard"></div>
+    </div>
+
+    <div class="controls">
+      <button class="primary" id="newGameBtn">🔄 New Game</button>
+      <button id="undoBtn">↩ Undo Move</button>
+      <button id="flipBtn">⇅ Flip Board</button>
+    </div>
+
+    <div class="info-row">
+      <div class="glass info-box">
+        <div class="info-label">Captured by White</div>
+        <div class="captured-row" id="capturedByWhite">—</div>
+      </div>
+      <div class="glass info-box">
+        <div class="info-label">Captured by Black</div>
+        <div class="captured-row" id="capturedByBlack">—</div>
+      </div>
+      <div class="glass info-box">
+        <div class="info-label">Move</div>
+        <div class="info-value" id="moveCount">0</div>
+      </div>
+    </div>
+
+    <div class="glass history-box">
+      <div class="info-label">Move History</div>
+      <div class="move-history" id="moveHistory">No moves yet</div>
+    </div>
+
+    <div class="footer-note">Tap a piece to see legal moves highlighted, then tap a destination.</div>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="glass modal">
+    <div class="icon" id="modalIcon">🏆</div>
+    <h2 id="modalTitle">Game Over</h2>
+    <p id="modalSub">—</p>
+    <div class="actions">
+      <button id="modalCloseBtn">Keep Reviewing</button>
+      <button class="primary" id="modalNewGameBtn">New Game</button>
+    </div>
+  </div>
+</div>
+
+<div id="overlay2"></div>
+<div id="syncStatus" class="sync-status" style="display:none;">✓ Synced</div>
+<div id="debugLog" class="debug-log"></div>
+
+<script type="module">
+
+
+
+
+
+
+
+
+
+
+// DEBUG LOG
+let debugLogs = [];
+function debugLog(msg) {
+  const timestamp = new Date().toLocaleTimeString();
+  const logMsg = `[${timestamp}] ${msg}`;
+  debugLogs.push(logMsg);
+  if(debugLogs.length > 20) debugLogs.shift();
+  document.getElementById('debugLog').innerHTML = debugLogs.join('<br>');
+  console.log(logMsg);
+}
+
+debugLog('🎮 Chess App Initialized');
+
+/* =========================================================
+   APP STATE MANAGEMENT - COMPLETE FIX
+========================================================= */
+window.app = {
+  mode: 'menu',
+  isOnline: false,
+  playerName: null,
+  playerId: null,
+  roomId: null,
+  playerColor: null,
+  opponentName: null,
+  opponentId: null,
+  currentInvite: null,
+  gameState: null,
+  gameUnsubscribe: null,
+  playersUnsubscribe: null,
+  invitesUnsubscribe: null,
+  heartbeatInterval: null,
+  
+  showPlayerNameInput(){
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('playerNameModal').classList.add('active');
+  },
+  
+  cancelPlayerName(){
+    document.getElementById('playerNameModal').classList.remove('active');
+    document.getElementById('startScreen').classList.remove('hidden');
+  },
+  
+  async submitPlayerName(){
+    const input = document.getElementById('playerNameInput');
+    const name = input.value.trim();
+    if(!name){ alert('Please enter a name'); return; }
+    
+    window.app.playerName = name;
+    document.getElementById('playerNameInput').value = '';
+    document.getElementById('playerNameModal').classList.remove('active');
+    
+    debugLog(`📝 Player Name: ${name}`);
+    
+    try {
+      debugLog('🔐 Authenticating with Firebase...');
+      const result = await signInAnonymously(auth);
+      window.app.playerId = result.user.uid;
+      debugLog(`✅ Auth Success! UID: ${window.app.playerId}`);
+      window.app.enterOnlineLobby();
+    } catch(e){
+      debugLog(`❌ Auth Error: ${e.message}`);
+      alert('Connection failed: ' + e.message);
+    }
+  },
+  
+  async enterOnlineLobby(){
+    window.app.mode = 'lobby';
+    window.app.isOnline = true;
+    document.getElementById('currentPlayerTag').textContent = window.app.playerName;
+    document.getElementById('onlineLobby').classList.add('active');
+    
+    debugLog('📍 Entering Online Lobby');
+    
+    await window.app.registerPlayer();
+    window.app.listenForPlayers();
+    window.app.listenForInvites();
+    window.app.startHeartbeat();
+  },
+  
+  async registerPlayer(){
+    const playerRef = ref(db, `players/${window.app.playerId}`);
+    
+    try {
+      debugLog(`📤 Registering player: ${window.app.playerName}`);
+      await set(playerRef, {
+        name: window.app.playerName,
+        timestamp: Date.now(),
+        status: 'lobby',
+        lastSeen: Date.now()
+      });
+      debugLog('✅ Player registered successfully');
+    } catch(err) {
+      debugLog(`❌ Register Error: ${err.message}`);
+    }
+    
+    onDisconnect(playerRef).remove();
+  },
+
+  startHeartbeat(){
+    debugLog('💓 Heartbeat started');
+    window.app.heartbeatInterval = setInterval(() => {
+      if(window.app.playerId && window.app.isOnline && window.app.mode === 'lobby'){
+        const playerRef = ref(db, `players/${window.app.playerId}`);
+        update(playerRef, { lastSeen: Date.now() }).catch(err => {
+          debugLog(`❌ Heartbeat Error: ${err.message}`);
+        });
+      }
+    }, 5000);
+  },
+
+  stopHeartbeat(){
+    if(window.app.heartbeatInterval){
+      clearInterval(window.app.heartbeatInterval);
+      window.app.heartbeatInterval = null;
+      debugLog('💓 Heartbeat stopped');
+    }
+  },
+  
+  listenForPlayers(){
+    debugLog('👂 Listening for players...');
+    const playersRef = ref(db, 'players');
+    window.app.playersUnsubscribe = onValue(playersRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      debugLog(`📊 Players Count: ${Object.keys(data).length}`);
+      window.app.updatePlayersList(data);
+    }, (err) => {
+      debugLog(`❌ Listen Players Error: ${err.message}`);
+    });
+  },
+  
+  updatePlayersList(players){
+    const list = document.getElementById('playersList');
+    const myPlayers = Object.entries(players)
+      .filter(([id]) => id !== window.app.playerId && !window.app.isInGame())
+      .map(([id, p]) => ({ id, ...p }));
+    
+    debugLog(`🎮 Available Players: ${myPlayers.length}`);
+    
+    if(myPlayers.length === 0){
+      list.innerHTML = '<div class="empty-state"><div style="font-size:24px;margin-bottom:10px;">🔄</div><div class="empty-state-text">Looking for players...</div></div>';
+      return;
+    }
+    
+    list.innerHTML = myPlayers.map(({id, name}) => `
+      <div class="player-item">
+        <span class="player-name">${name}</span>
+        <button class="invite-btn" onclick="app.sendInvite('${id}', '${name}')">Invite</button>
+      </div>
+    `).join('');
+  },
+  
+  sendInvite(opponentId, opponentName){
+    window.app.opponentId = opponentId;
+    window.app.opponentName = opponentName;
+    window.app.roomId = [window.app.playerId, opponentId].sort().join('_');
+    
+    debugLog(`📨 Sending invite to ${opponentName}`);
+    
+    const inviteRef = ref(db, `invites/${opponentId}/${window.app.playerId}`);
+    set(inviteRef, {
+      from: window.app.playerName,
+      fromId: window.app.playerId,
+      roomId: window.app.roomId,
+      timestamp: Date.now()
+    }).catch(err => {
+      debugLog(`❌ Send Invite Error: ${err.message}`);
+    });
+    
+    onDisconnect(inviteRef).remove();
+  },
+  
+  listenForInvites(){
+    debugLog('👂 Listening for invites...');
+    const invitesRef = ref(db, `invites/${window.app.playerId}`);
+    window.app.invitesUnsubscribe = onValue(invitesRef, (snapshot) => {
+      const invites = snapshot.val() || {};
+      const latest = Object.entries(invites)[0];
+      if(latest && (!window.app.currentInvite || window.app.currentInvite[0] !== latest[0])){
+        window.app.currentInvite = latest;
+        debugLog(`📬 Invite received from ${latest[1].from}`);
+        document.getElementById('inviteText').textContent = `${latest[1].from} invited you to play.`;
+        document.getElementById('inviteModal').classList.add('active');
+      }
+    }, (err) => {
+      debugLog(`❌ Listen Invites Error: ${err.message}`);
+    });
+  },
+  
+  acceptInvite(){
+    if(!window.app.currentInvite) return;
+    const inviterId = window.app.currentInvite[0];
+    const inviteData = window.app.currentInvite[1];
+    
+    window.app.roomId = inviteData.roomId;
+    window.app.opponentId = inviterId;
+    window.app.opponentName = inviteData.from;
+    window.app.playerColor = 'b';
+    
+    debugLog(`✅ Invite accepted from ${inviteData.from}`);
+    
+    remove(ref(db, `invites/${window.app.playerId}/${inviterId}`));
+    window.app.currentInvite = null;
+    
+    document.getElementById('inviteModal').classList.remove('active');
+    window.app.startOnlineGame();
+  },
+  
+  declineInvite(){
+    if(!window.app.currentInvite) return;
+    const inviterId = window.app.currentInvite[0];
+    debugLog(`❌ Invite declined`);
+    remove(ref(db, `invites/${window.app.playerId}/${inviterId}`));
+    window.app.currentInvite = null;
+    document.getElementById('inviteModal').classList.remove('active');
+  },
+  
+  exitLobby(){
+    debugLog('🚪 Exiting lobby');
+    if(window.app.playersUnsubscribe) window.app.playersUnsubscribe();
+    if(window.app.invitesUnsubscribe) window.app.invitesUnsubscribe();
+    window.app.stopHeartbeat();
+    
+    remove(ref(db, `players/${window.app.playerId}`));
+    window.app.mode = 'menu';
+    window.app.isOnline = false;
+    window.app.playerName = null;
+    window.app.playerId = null;
+    document.getElementById('onlineLobby').classList.remove('active');
+    document.getElementById('startScreen').classList.remove('hidden');
+  },
+  
+  isInGame(){
+    return window.app.mode === 'game';
+  },
+  
+  startOfflineGame(){
+    window.app.mode = 'game';
+    window.app.isOnline = false;
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('gameContainer').classList.add('active');
+    initChessGame();
+  },
+  
+  startOnlineGame(){
+    window.app.mode = 'game';
+    window.app.stopHeartbeat();
+    if(!window.app.playerColor) window.app.playerColor = 'w';
+    document.getElementById('onlineLobby').classList.remove('active');
+    document.getElementById('gameContainer').classList.add('active');
+    document.getElementById('opponentInfo').textContent = `Opponent: ${window.app.opponentName} (${window.app.playerColor === 'w' ? 'Black' : 'White'})`;
+    
+    debugLog(`🎮 Game Started - ${window.app.playerColor === 'w' ? 'White' : 'Black'} vs ${window.app.opponentName}`);
+    
+    initChessGame();
+    window.app.setupOnlineSync();
+  },
+  
+  setupOnlineSync(){
+    const gameRef = ref(db, `games/${window.app.roomId}`);
+    
+    if(window.app.gameUnsubscribe) window.app.gameUnsubscribe();
+    
+    const playerStatusRef = ref(db, `games/${window.app.roomId}/players/${window.app.playerId}`);
+    update(playerStatusRef, { status: 'active', lastUpdate: Date.now() }).catch(err => {
+      debugLog(`❌ Player Status Error: ${err.message}`);
+    });
+    onDisconnect(playerStatusRef).update({ status: 'disconnected', lastUpdate: Date.now() });
+    
+    debugLog(`👂 Listening to game: ${window.app.roomId}`);
+    
+    window.app.gameUnsubscribe = onValue(gameRef, (snapshot) => {
+      const gameData = snapshot.val();
+      if(!gameData || !gameData.gameState) return;
+      
+      if(gameData.gameState.turn !== window.app.playerColor){
+        window.app.gameState.board = gameData.gameState.board.map(row => row.slice());
+        window.app.gameState.turn = gameData.gameState.turn;
+        window.app.gameState.lastMove = gameData.gameState.lastMove ? 
+          {from:{...gameData.gameState.lastMove.from}, to:{...gameData.gameState.lastMove.to}} : null;
+        window.app.gameState.history = gameData.gameState.history.slice();
+        window.app.gameState.castling = Object.assign({}, gameData.gameState.castling);
+        window.app.gameState.enPassant = gameData.gameState.enPassant;
+        window.app.gameState.capturedByWhite = gameData.gameState.capturedByWhite.slice();
+        window.app.gameState.capturedByBlack = gameData.gameState.capturedByBlack.slice();
+        window.app.gameState.gameOver = gameData.gameState.gameOver || false;
+        window.app.gameState.selected = null;
+        window.app.gameState.legalForSelected = [];
+        render();
+      }
+    }, (err) => {
+      debugLog(`❌ Game Sync Error: ${err.message}`);
+    });
+  },
+  
+  async syncGameState(){
+    if(!window.app.isOnline || !window.app.roomId) return;
+    
+    const gameRef = ref(db, `games/${window.app.roomId}`);
+    
+    try {
+      await runTransaction(gameRef, (current) => {
+        if(current === null) return current;
+        
+        if(current.gameState && current.gameState.turn !== window.app.playerColor){
+          debugLog('⚠️ Invalid move - not your turn!');
+          return;
+        }
+        
+        return {
+          ...current,
+          gameState: {
+            board: window.app.gameState.board,
+            turn: window.app.gameState.turn,
+            lastMove: window.app.gameState.lastMove,
+            history: window.app.gameState.history,
+            castling: window.app.gameState.castling,
+            enPassant: window.app.gameState.enPassant,
+            capturedByWhite: window.app.gameState.capturedByWhite,
+            capturedByBlack: window.app.gameState.capturedByBlack,
+            gameOver: window.app.gameState.gameOver
+          }
+        };
+      });
+      
+      debugLog(`✓ Move synced`);
+      const syncEl = document.getElementById('syncStatus');
+      syncEl.style.display = 'block';
+      setTimeout(() => { syncEl.style.display = 'none'; }, 1500);
+    } catch(err){
+      debugLog(`❌ Sync Error: ${err.message}`);
+    }
+  },
+  
+  exitGame(){
+    debugLog('🚪 Exiting game');
+    if(window.app.gameUnsubscribe){
+      window.app.gameUnsubscribe();
+      window.app.gameUnsubscribe = null;
+    }
+
+    if(window.app.isOnline){
+      const playerStatusRef = ref(db, `games/${window.app.roomId}/players/${window.app.playerId}`);
+      update(playerStatusRef, { status: 'left', leftAt: Date.now() });
+      remove(ref(db, `players/${window.app.playerId}`));
+    }
+    
+    window.app.mode = 'menu';
+    window.app.isOnline = false;
+    window.app.roomId = null;
+    window.app.playerColor = null;
+    window.app.opponentId = null;
+    window.app.opponentName = null;
+    document.getElementById('gameContainer').classList.remove('active');
+    document.getElementById('overlay').classList.remove('active');
+    document.getElementById('startScreen').classList.remove('hidden');
+  }
+};
+
+/* =========================================================
+   CHESS ENGINE
+========================================================= */
+
+const GLYPH = {
+  wK:'♔', wQ:'♕', wR:'♖', wB:'♗', wN:'♘', wP:'♙',
+  bK:'♚', bQ:'♛', bR:'♜', bB:'♝', bN:'♞', bP:'♟'
+};
+
+function freshBoard(){
+  return [
+    ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+    ['bP','bP','bP','bP','bP','bP','bP','bP'],
+    [null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null],
+    ['wP','wP','wP','wP','wP','wP','wP','wP'],
+    ['wR','wN','wB','wQ','wK','wB','wN','wR']
+  ];
+}
+
+let state = null;
+
+function newGameState(){
+  return {
+    board: freshBoard(),
+    turn: 'w',
+    selected: null,
+    legalForSelected: [],
+    lastMove: null,
+    history: [],
+    capturedByWhite: [],
+    capturedByBlack: [],
+    castling: { wK:true, wQ:true, bK:true, bQ:true },
+    enPassant: null,
+    orientation: 'w',
+    gameOver: false,
+    undoStack: []
+  };
+}
+
+function cloneState(s){
+  return {
+    board: s.board.map(row => row.slice()),
+    turn: s.turn,
+    castling: Object.assign({}, s.castling),
+    enPassant: s.enPassant ? {r:s.enPassant.r, c:s.enPassant.c} : null,
+    lastMove: s.lastMove ? {from:{...s.lastMove.from}, to:{...s.lastMove.to}} : null,
+    capturedByWhite: s.capturedByWhite.slice(),
+    capturedByBlack: s.capturedByBlack.slice(),
+    history: s.history.slice()
+  };
+}
+
+const boardEl = document.getElementById('chessboard');
+const statusEl = document.getElementById('status');
+const moveHistoryEl = document.getElementById('moveHistory');
+const moveCountEl = document.getElementById('moveCount');
+const capturedByWhiteEl = document.getElementById('capturedByWhite');
+const capturedByBlackEl = document.getElementById('capturedByBlack');
+const overlay = document.getElementById('overlay');
+const modalIcon = document.getElementById('modalIcon');
+const modalTitle = document.getElementById('modalTitle');
+const modalSub = document.getElementById('modalSub');
+
+function inBounds(r,c){ return r>=0 && r<8 && c>=0 && c<8; }
+function pieceColor(p){ return p ? p[0] : null; }
+function pieceType(p){ return p ? p[1] : null; }
+function opponent(color){ return color === 'w' ? 'b' : 'w'; }
+
+function pseudoMoves(board, r, c, castling, enPassantTarget){
+  const p = board[r][c];
+  if(!p) return [];
+  const color = p[0], type = p[1];
+  const moves = [];
+
+  function tryAdd(nr,nc, opts){
+    if(!inBounds(nr,nc)) return;
+    const target = board[nr][nc];
+    if(target && pieceColor(target) === color) return;
+    moves.push(Object.assign({r:nr,c:nc,capture:!!target}, opts||{}));
+  }
+
+  function slide(dirs){
+    dirs.forEach(([dx,dy])=>{
+      let nr=r+dx, nc=c+dy;
+      while(inBounds(nr,nc)){
+        const target = board[nr][nc];
+        if(!target){ moves.push({r:nr,c:nc,capture:false}); }
+        else {
+          if(pieceColor(target) !== color) moves.push({r:nr,c:nc,capture:true});
+          break;
+        }
+        nr+=dx; nc+=dy;
+      }
+    });
+  }
+
+  if(type === 'P'){
+    const dir = color === 'w' ? -1 : 1;
+    const startRow = color === 'w' ? 6 : 1;
+    if(inBounds(r+dir,c) && !board[r+dir][c]){
+      moves.push({r:r+dir,c:c,capture:false});
+      if(r === startRow && !board[r+2*dir][c]){
+        moves.push({r:r+2*dir,c:c,capture:false,doubleStep:true});
+      }
+    }
+    [[dir,-1],[dir,1]].forEach(([dx,dy])=>{
+      const nr=r+dx, nc=c+dy;
+      if(!inBounds(nr,nc)) return;
+      const target = board[nr][nc];
+      if(target && pieceColor(target) !== color){
+        moves.push({r:nr,c:nc,capture:true});
+      } else if(!target && enPassantTarget && enPassantTarget.r===nr && enPassantTarget.c===nc){
+        moves.push({r:nr,c:nc,capture:true,enPassant:true});
+      }
+    });
+  }
+
+  if(type === 'N'){
+    [[1,2],[2,1],[2,-1],[1,-2],[-1,-2],[-2,-1],[-2,1],[-1,2]].forEach(([dx,dy])=>{
+      tryAdd(r+dx,c+dy);
+    });
+  }
+
+  if(type === 'K'){
+    for(let dx=-1;dx<=1;dx++){
+      for(let dy=-1;dy<=1;dy++){
+        if(dx||dy) tryAdd(r+dx,c+dy);
+      }
+    }
+    const row = color === 'w' ? 7 : 0;
+    if(r === row && c === 4){
+      const kRight = color === 'w' ? castling.wK : castling.bK;
+      const qRight = color === 'w' ? castling.wQ : castling.bQ;
+      if(kRight && !board[row][5] && !board[row][6] && board[row][7] === color+'R'){
+        moves.push({r:row,c:6,capture:false,castle:'K'});
+      }
+      if(qRight && !board[row][3] && !board[row][2] && !board[row][1] && board[row][0] === color+'R'){
+        moves.push({r:row,c:2,capture:false,castle:'Q'});
+      }
+    }
+  }
+
+  if(type === 'R') slide([[1,0],[-1,0],[0,1],[0,-1]]);
+  if(type === 'B') slide([[1,1],[1,-1],[-1,1],[-1,-1]]);
+  if(type === 'Q') slide([[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]);
+
+  return moves;
+}
+
+function isSquareAttacked(board, r, c, attackerColor){
+  for(let rr=0; rr<8; rr++){
+    for(let cc=0; cc<8; cc++){
+      const p = board[rr][cc];
+      if(!p || pieceColor(p) !== attackerColor) continue;
+      const type = pieceType(p);
+      if(type === 'P'){
+        const dir = attackerColor === 'w' ? -1 : 1;
+        if(rr+dir === r && (cc-1===c || cc+1===c)) return true;
+        continue;
+      }
+      if(type === 'K'){
+        if(Math.abs(rr-r)<=1 && Math.abs(cc-c)<=1 && !(rr===r&&cc===c)) return true;
+        continue;
+      }
+      const moves = pseudoMoves(board, rr, cc, {wK:false,wQ:false,bK:false,bQ:false}, null);
+      if(moves.some(m => m.r===r && m.c===c && !m.castle)) return true;
+    }
+  }
+  return false;
+}
+
+function findKing(board, color){
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(board[r][c] === color+'K') return {r,c};
+  return null;
+}
+
+function isInCheck(board, color){
+  const k = findKing(board, color);
+  if(!k) return false;
+  return isSquareAttacked(board, k.r, k.c, opponent(color));
+}
+
+function applyMoveToBoard(board, from, to, move, promotionType){
+  const b = board.map(row=>row.slice());
+  const piece = b[from.r][from.c];
+  const color = pieceColor(piece);
+
+  if(move && move.enPassant){
+    b[from.r][to.c] = null;
+  }
+
+  b[to.r][to.c] = piece;
+  b[from.r][from.c] = null;
+
+  if(move && move.castle === 'K'){
+    const row = from.r;
+    b[row][5] = b[row][7];
+    b[row][7] = null;
+  } else if(move && move.castle === 'Q'){
+    const row = from.r;
+    b[row][3] = b[row][0];
+    b[row][0] = null;
+  }
+
+  if(pieceType(piece) === 'P' && (to.r === 0 || to.r === 7)){
+    b[to.r][to.c] = color + (promotionType || 'Q');
+  }
+
+  return b;
+}
+
+function legalMovesForSquare(s, r, c){
+  const board = s.board;
+  const piece = board[r][c];
+  if(!piece) return [];
+  const color = pieceColor(piece);
+  if(color !== s.turn) return [];
+
+  const pseudo = pseudoMoves(board, r, c, s.castling, s.enPassant);
+  const legal = [];
+
+  pseudo.forEach(m=>{
+    if(m.castle){
+      const row = r;
+      if(isInCheck(board, color)) return;
+      const passCol = m.castle === 'K' ? 5 : 3;
+      const passBoard = applyMoveToBoard(board, {r,c}, {r:row,c:passCol}, {}, null);
+      if(isSquareAttacked(passBoard, row, passCol, opponent(color))) return;
+      const destBoard = applyMoveToBoard(board, {r,c}, {r:m.r,c:m.c}, m, null);
+      if(isSquareAttacked(destBoard, m.r, m.c, opponent(color))) return;
+      legal.push(m);
+      return;
+    }
+    const testBoard = applyMoveToBoard(board, {r,c}, {r:m.r,c:m.c}, m, 'Q');
+    if(!isInCheck(testBoard, color)){
+      legal.push(m);
+    }
+  });
+
+  return legal;
+}
+
+function anyLegalMoves(s, color){
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const p = s.board[r][c];
+      if(p && pieceColor(p) === color){
+        const savedTurn = s.turn;
+        s.turn = color;
+        const moves = legalMovesForSquare(s, r, c);
+        s.turn = savedTurn;
+        if(moves.length) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function isCheckmate(s, color){
+  return isInCheck(s.board, color) && !anyLegalMoves(s, color);
+}
+function isStalemate(s, color){
+  return !isInCheck(s.board, color) && !anyLegalMoves(s, color);
+}
+
+function insufficientMaterial(s){
+  const pieces = [];
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const p = s.board[r][c];
+    if(p && pieceType(p) !== 'K') pieces.push(p);
+  }
+  if(pieces.length === 0) return true;
+  if(pieces.length === 1 && (pieceType(pieces[0])==='B' || pieceType(pieces[0])==='N')) return true;
+  if(pieces.length === 2 && pieces.every(p=>pieceType(p)==='B')){
+    return true;
+  }
+  return false;
+}
+
+let pendingPromotion = null;
+
+function render(){
+  boardEl.innerHTML = '';
+  const flipped = state.orientation === 'b';
+
+  for(let displayRow=0; displayRow<8; displayRow++){
+    for(let displayCol=0; displayCol<8; displayCol++){
+      const r = flipped ? 7-displayRow : displayRow;
+      const c = flipped ? 7-displayCol : displayCol;
+
+      const cell = document.createElement('div');
+      cell.className = 'cell ' + (((r+c)%2===0) ? 'light' : 'dark');
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+
+      if(displayRow === 7){
+        const f = document.createElement('span');
+        f.className = 'coord file';
+        f.textContent = String.fromCharCode(97+c);
+        cell.appendChild(f);
+      }
+      if(displayCol === 0){
+        const rk = document.createElement('span');
+        rk.className = 'coord rank';
+        rk.textContent = 8-r;
+        cell.appendChild(rk);
+      }
+
+      const piece = state.board[r][c];
+      if(piece){
+        const span = document.createElement('span');
+        span.className = 'piece ' + (pieceColor(piece)==='w' ? 'piece-white' : 'piece-black');
+        span.textContent = GLYPH[piece];
+        cell.appendChild(span);
+      }
+
+      if(state.lastMove){
+        if(state.lastMove.from.r===r && state.lastMove.from.c===c) cell.classList.add('last-from');
+        if(state.lastMove.to.r===r && state.lastMove.to.c===c) cell.classList.add('last-to');
+      }
+
+      if(state.selected && state.selected.r===r && state.selected.c===c){
+        cell.classList.add('selected');
+      }
+
+      if(state.selected){
+        const mv = state.legalForSelected.find(m=>m.r===r && m.c===c);
+        if(mv){
+          const marker = document.createElement('div');
+          marker.className = mv.capture ? 'ring' : 'dot';
+          cell.appendChild(marker);
+        }
+      }
+
+      if(piece && pieceType(piece)==='K' && isInCheck(state.board, pieceColor(piece))){
+        cell.classList.add('check');
+      }
+
+      cell.addEventListener('click', onCellClick);
+      boardEl.appendChild(cell);
+    }
+  }
+
+  updateStatus();
+  updateInfo();
+}
+
+function updateStatus(){
+  statusEl.classList.remove('white-turn','black-turn','check','over');
+
+  if(state.gameOver){
+    statusEl.classList.add('over');
+    return;
+  }
+
+  const inCheck = isInCheck(state.board, state.turn);
+  const turnName = state.turn === 'w' ? 'White' : 'Black';
+
+  if(inCheck){
+    statusEl.textContent = turnName + ' is in Check!';
+    statusEl.classList.add('check');
+  } else {
+    statusEl.textContent = turnName + "'s Turn";
+    statusEl.classList.add(state.turn === 'w' ? 'white-turn' : 'black-turn');
+  }
+}
+
+function pieceLetterToGlyph(letter, color){
+  return GLYPH[color+letter];
+}
+
+function updateInfo(){
+  moveCountEl.textContent = state.history.length;
+
+  capturedByWhiteEl.innerHTML = state.capturedByWhite.length
+    ? state.capturedByWhite.map(l=>`<span>${pieceLetterToGlyph(l,'b')}</span>`).join('')
+    : '—';
+  capturedByBlackEl.innerHTML = state.capturedByBlack.length
+    ? state.capturedByBlack.map(l=>`<span>${pieceLetterToGlyph(l,'w')}</span>`).join('')
+    : '—';
+
+  let html = '';
+  for(let i=0;i<state.history.length;i+=2){
+    const num = Math.floor(i/2)+1;
+    const w = state.history[i] || '';
+    const b = state.history[i+1] || '';
+    html += `<div><span class="num">${num}.</span>${w} ${b}</div>`;
+  }
+  moveHistoryEl.innerHTML = html || 'No moves yet';
+  moveHistoryEl.scrollTop = moveHistoryEl.scrollHeight;
+}
+
+function onCellClick(e){
+  if(state.gameOver) return;
+  
+  if(window.app.isOnline && state.turn !== window.app.playerColor) {
+    return;
+  }
+  
+  const r = +this.dataset.r, c = +this.dataset.c;
+
+  if(state.selected){
+    const mv = state.legalForSelected.find(m=>m.r===r && m.c===c);
+    if(mv){
+      performMove(state.selected, mv);
+      state.selected = null;
+      state.legalForSelected = [];
+      render();
+      if(window.app.isOnline) window.app.syncGameState();
+      return;
+    }
+    const piece = state.board[r][c];
+    if(piece && pieceColor(piece) === state.turn){
+      state.selected = {r,c};
+      state.legalForSelected = legalMovesForSquare(state, r, c);
+    } else {
+      state.selected = null;
+      state.legalForSelected = [];
+    }
+    render();
+    return;
+  }
+
+  const piece = state.board[r][c];
+  if(piece && pieceColor(piece) === state.turn){
+    state.selected = {r,c};
+    state.legalForSelected = legalMovesForSquare(state, r, c);
+    render();
+  }
+}
+
+function pushUndoSnapshot(){
+  state.undoStack.push(cloneState(state));
+  if(state.undoStack.length > 200) state.undoStack.shift();
+}
+
+function performMove(from, move){
+  const piece = state.board[from.r][from.c];
+  const color = pieceColor(piece);
+  const type = pieceType(piece);
+
+  const isPromotion = type === 'P' && (move.r === 0 || move.r === 7);
+  if(isPromotion){
+    pendingPromotion = { from, move };
+    showPromotionModal(color);
+    return;
+  }
+
+  commitMove(from, move, null);
+}
+
+function commitMove(from, move, promotionType){
+  pushUndoSnapshot();
+
+  const piece = state.board[from.r][from.c];
+  const color = pieceColor(piece);
+  const type = pieceType(piece);
+  let capturedLetter = null;
+
+  if(move.enPassant){
+    capturedLetter = pieceType(state.board[from.r][move.c]);
+    state.board[from.r][move.c] = null;
+  } else if(state.board[move.r][move.c]){
+    capturedLetter = pieceType(state.board[move.r][move.c]);
+  }
+
+  const files = 'abcdefgh';
+  const fromSq = files[from.c] + (8-from.r);
+  const toSq = files[move.c] + (8-move.r);
+  let san;
+  if(move.castle === 'K') san = 'O-O';
+  else if(move.castle === 'Q') san = 'O-O-O';
+  else {
+    const pieceLetter = type === 'P' ? '' : type;
+    const captureMark = (capturedLetter || move.enPassant) ? 'x' : '';
+    const pawnFilePrefix = (type === 'P' && captureMark) ? files[from.c] : '';
+    san = pieceLetter + pawnFilePrefix + captureMark + toSq;
+  }
+
+  state.board[move.r][move.c] = piece;
+  state.board[from.r][from.c] = null;
+
+  if(move.castle === 'K'){
+    const row = from.r;
+    state.board[row][5] = state.board[row][7];
+    state.board[row][7] = null;
+  } else if(move.castle === 'Q'){
+    const row = from.r;
+    state.board[row][3] = state.board[row][0];
+    state.board[row][0] = null;
+  }
+
+  if(type === 'P' && (move.r === 0 || move.r === 7)){
+    state.board[move.r][move.c] = color + (promotionType || 'Q');
+    san += '=' + (promotionType || 'Q');
+  }
+
+  if(type === 'K'){
+    if(color==='w'){ state.castling.wK=false; state.castling.wQ=false; }
+    else { state.castling.bK=false; state.castling.bQ=false; }
+  }
+  if(type === 'R'){
+    if(color==='w' && from.r===7 && from.c===0) state.castling.wQ=false;
+    if(color==='w' && from.r===7 && from.c===7) state.castling.wK=false;
+    if(color==='b' && from.r===0 && from.c===0) state.castling.bQ=false;
+    if(color==='b' && from.r===0 && from.c===7) state.castling.bK=false;
+  }
+  if(move.r===7 && move.c===0) state.castling.wQ=false;
+  if(move.r===7 && move.c===7) state.castling.wK=false;
+  if(move.r===0 && move.c===0) state.castling.bQ=false;
+  if(move.r===0 && move.c===7) state.castling.bK=false;
+
+  if(move.doubleStep){
+    state.enPassant = { r: (from.r+move.r)/2, c: from.c };
+  } else {
+    state.enPassant = null;
+  }
+
+  if(capturedLetter){
+    if(color === 'w') state.capturedByWhite.push(capturedLetter);
+    else state.capturedByBlack.push(capturedLetter);
+  }
+
+  state.lastMove = { from:{r:from.r,c:from.c}, to:{r:move.r,c:move.c} };
+  state.turn = opponent(color);
+
+  if(isInCheck(state.board, state.turn)){
+    if(isCheckmate(state, state.turn)) san += '#';
+    else san += '+';
+  }
+
+  state.history.push(san);
+
+  checkEndConditions();
+}
+
+function checkEndConditions(){
+  if(isCheckmate(state, state.turn)){
+    const winner = state.turn === 'w' ? 'Black' : 'White';
+    endGame('checkmate', winner);
+  } else if(isStalemate(state, state.turn)){
+    endGame('stalemate', null);
+  } else if(insufficientMaterial(state)){
+    endGame('material', null);
+  }
+}
+
+function endGame(reason, winner){
+  state.gameOver = true;
+  render();
+
+  const messages = {
+    checkmate: winner + ' wins by checkmate!',
+    stalemate: 'Draw by stalemate.',
+    material: 'Draw — insufficient material.'
+  };
+  statusEl.textContent = messages[reason];
+
+  modalIcon.textContent = reason === 'checkmate' ? '🏆' : '🤝';
+  modalTitle.textContent = reason === 'checkmate' ? winner + ' Wins!' : 'Draw';
+  modalSub.textContent = messages[reason];
+  overlay.classList.add('active');
+  
+  if(window.app.isOnline){
+    state.gameOver = true;
+    window.app.syncGameState();
+  }
+}
+
+function showPromotionModal(color){
+  const modal = document.getElementById('overlay2');
+  modal.innerHTML = `
+    <div style="position:fixed;inset:0;z-index:150;background:rgba(4,4,6,0.82);display:flex;justify-content:center;align-items:center;padding:20px;backdrop-filter:blur(6px);">
+      <div class="glass" style="max-width:340px;width:100%;padding:28px;text-align:center;border-radius:16px;">
+        <h2 style="margin-bottom:6px;font-size:20px;">Promote Pawn</h2>
+        <p style="color:var(--ink-1);font-size:13px;margin-bottom:16px;">Choose a piece</p>
+        <div class="promo-choices" id="promoChoicesInner"></div>
+      </div>
+    </div>
+  `;
+  const container = document.getElementById('promoChoicesInner');
+  ['Q','R','B','N'].forEach(type=>{
+    const div = document.createElement('div');
+    div.className = 'promo-choice';
+    div.textContent = GLYPH[color+type];
+    div.style.color = color === 'w' ? '#fdfdfd' : '#151515';
+    div.addEventListener('click', ()=>{
+      modal.innerHTML = '';
+      const { from, move } = pendingPromotion;
+      pendingPromotion = null;
+      commitMove(from, move, type);
+      state.selected = null;
+      state.legalForSelected = [];
+      render();
+      if(window.app.isOnline) window.app.syncGameState();
+    });
+    container.appendChild(div);
+  });
+}
+
+function initChessGame(){
+  state = newGameState();
+  if(window.app.isOnline && window.app.playerColor === 'b'){
+    state.orientation = 'b';
+  }
+  window.app.gameState = state;
+  
+  if(window.app.isOnline){
+    const gameRef = ref(db, `games/${window.app.roomId}`);
+    update(gameRef, {
+      gameState: {
+        board: state.board,
+        turn: state.turn,
+        lastMove: null,
+        history: [],
+        castling: state.castling,
+        enPassant: null,
+        capturedByWhite: [],
+        capturedByBlack: [],
+        gameOver: false
+      },
+      players: {
+        [window.app.playerId]: {
+          name: window.app.playerName,
+          color: window.app.playerColor,
+          status: 'active',
+          joinedAt: Date.now()
+        }
+      }
+    }).catch(err => {
+      debugLog(`❌ Init Game Error: ${err.message}`);
+    });
+  }
+  
+  render();
+}
+
+document.getElementById('newGameBtn').addEventListener('click', ()=>{
+  const orientation = state.orientation;
+  state = newGameState();
+  state.orientation = orientation;
+  window.app.gameState = state;
+  overlay.classList.remove('active');
+  if(window.app.isOnline) window.app.syncGameState();
+  render();
+});
+
+document.getElementById('undoBtn').addEventListener('click', ()=>{
+  if(window.app.isOnline) {
+    alert('Undo is disabled in online mode');
+    return;
+  }
+  if(state.undoStack.length === 0) return;
+  const snap = state.undoStack.pop();
+  state.board = snap.board;
+  state.turn = snap.turn;
+  state.castling = snap.castling;
+  state.enPassant = snap.enPassant;
+  state.lastMove = snap.lastMove;
+  state.capturedByWhite = snap.capturedByWhite;
+  state.capturedByBlack = snap.capturedByBlack;
+  state.history = snap.history;
+  state.selected = null;
+  state.legalForSelected = [];
+  state.gameOver = false;
+  overlay.classList.remove('active');
+  window.app.gameState = state;
+  render();
+});
+
+document.getElementById('flipBtn').addEventListener('click', ()=>{
+  state.orientation = state.orientation === 'w' ? 'b' : 'w';
+  render();
+});
+
+document.getElementById('modalCloseBtn').addEventListener('click', ()=>{
+  overlay.classList.remove('active');
+});
+
+document.getElementById('modalNewGameBtn').addEventListener('click', ()=>{
+  const orientation = state.orientation;
+  state = newGameState();
+  state.orientation = orientation;
+  window.app.gameState = state;
+  overlay.classList.remove('active');
+  if(window.app.isOnline) window.app.syncGameState();
+  render();
+});
+
+// Toggle debug log with Ctrl+D
+document.addEventListener('keydown', (e) => {
+  if(e.ctrlKey && e.key === 'd') {
+    const debugLog = document.getElementById('debugLog');
+    debugLog.style.display = debugLog.style.display === 'none' ? 'block' : 'none';
+  }
+});
+
+debugLog('✅ App Ready - Press Ctrl+D for debug log');
+
+</script>
+
+</body>
+</html>
